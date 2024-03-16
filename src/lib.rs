@@ -52,8 +52,12 @@ impl<'s> Chrome<'s> {
                 Ok(r) => r,
                 Err(e) => {
                     if e.is_connect() {
-                        tokio::time::sleep(poll).await;
-                        continue
+                        if start.elapsed().unwrap() < timeout {
+                            tokio::time::sleep(poll).await;
+                            continue;
+                        } else {
+                            return Err(ChromeError::Timeout)
+                        }
                     } else {
                         return Err(ChromeError::Request(e))
                     }
