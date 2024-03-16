@@ -11,6 +11,7 @@ The `Chrome` struct has the following `Default` implementation.
 Chrome {
     driver_path: "chromedriver".into(),
     server_url: "http://localhost:9515".into(),
+    args: &[],
 }
 ```
 ### Example
@@ -23,11 +24,17 @@ use chrome::Chrome;
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let chrome = Chrome::default();
+
+    // Spawns the process and returns a result based on the
+    // chromedriver server's health
     let mut handle = chrome.spawn(
         Duration::from_secs(1), // Poll interval
         Duration::from_secs(5), // Timeout
     ).await?;
 
+    // Do stuff
+
+    // Clean up chromedriver process
     handle
         .kill()
         .await?;

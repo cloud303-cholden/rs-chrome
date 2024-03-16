@@ -28,6 +28,7 @@ pub struct Value {
 pub struct Chrome<'s> {
     pub driver_path: Cow<'s, str>,
     pub server_url: Cow<'s, str>,
+    pub args: &'s [&'s str],
 }
 
 impl<'s> Default for Chrome<'s>
@@ -36,6 +37,7 @@ impl<'s> Default for Chrome<'s>
         Self {
             driver_path: "chromedriver".into(),
             server_url: "http://localhost:9515".into(),
+            args: &[],
         }
     }
 }
@@ -43,6 +45,7 @@ impl<'s> Default for Chrome<'s>
 impl<'s> Chrome<'s> {
     pub async fn spawn(self, poll: Duration, timeout: Duration) -> Result<Child, ChromeError> {
         let handle = Command::new(self.driver_path.to_string())
+            .args(self.args)
             .spawn()
             .unwrap();
         let start = SystemTime::now();
