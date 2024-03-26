@@ -6,7 +6,7 @@ This crate is only hosted on GitHub for now.
 cargo add --git https://github.com/cloud303-cholden/rs-chrome.git
 ```
 ### Configuration
-The `Chrome` struct has the following `Default` implementation.
+The `Chrome` struct has the following public `Default` implementation.
 ```rust
 Chrome {
     driver_path: "chromedriver".into(),
@@ -15,7 +15,7 @@ Chrome {
 }
 ```
 ### Example
-You can run the below example with `cargo run --example default`. The current behavior is for the `chromedriver` process to outlive the application unless cleaned up with `kill()`. If you forget to add this, try `kill $(pidof chromedriver)`.
+You can run the below example with `cargo run --example default`. The current behavior is for the `chromedriver` process to get cleaned up automatically when `Chrome` is dropped. If this is not behaving as expected, try first running `kill $(pidof chromedriver)`.
 ```rust
 use std::time::Duration;
 
@@ -23,21 +23,16 @@ use chrome::Chrome;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let chrome = Chrome::default();
+    let mut chrome = Chrome::default();
 
     // Spawns the process and returns a result based on the
     // chromedriver server's health
-    let mut handle = chrome.spawn(
-        Duration::from_secs(1), // Poll interval
-        Duration::from_secs(5), // Timeout
+    chrome.spawn(
+        Duration::from_secs(1), // Health poll interval
+        Duration::from_secs(5), // Health poll timeout
     ).await?;
 
     // Do stuff
-
-    // Clean up chromedriver process
-    handle
-        .kill()
-        .await?;
 
     Ok(())
 }
