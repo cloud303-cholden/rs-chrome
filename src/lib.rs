@@ -1,5 +1,4 @@
 use std::{
-    borrow::Cow,
     process::{Child, Command},
     sync::{Arc, Mutex},
     time::{Duration, SystemTime},
@@ -27,18 +26,18 @@ pub struct Value {
 
 #[derive(Debug)]
 pub struct Chrome<'s> {
-    pub driver_path: Cow<'s, str>,
-    pub server_url: Cow<'s, str>,
+    pub driver_path: &'s str,
+    pub server_url: &'s str,
     pub args: &'s [&'s str],
-    handle: Option<Arc<Mutex<Child>>>,
+    pub handle: Option<ChromeProcess>,
 }
 
 impl<'s> Default for Chrome<'s>
 {
     fn default() -> Self {
         Self {
-            driver_path: "chromedriver".into(),
-            server_url: "http://localhost:9515".into(),
+            driver_path: "chromedriver",
+            server_url: "http://localhost:9515",
             args: &[],
             handle: None,
         }
@@ -47,7 +46,7 @@ impl<'s> Default for Chrome<'s>
 
 impl<'s> Chrome<'s> {
     pub async fn spawn(&mut self, poll: Duration, timeout: Duration) -> Result<(), ChromeError> {
-        let handle = Command::new(self.driver_path.to_string())
+        let handle = Command::new(self.driver_path)
             .args(self.args)
             .spawn()
             .unwrap();
@@ -73,7 +72,9 @@ impl<'s> Chrome<'s> {
                 .json::<Health>()
                 .await.unwrap();
             if resp.value.ready.unwrap_or(false) {
-                self.handle = Some(Arc::new(Mutex::new(handle)));
+                self.handle = Some(ChromeProcess{
+                    inner: Arc::new(Mutex::new(handle)),
+                });
                 return Ok(());
             } else if start.elapsed().unwrap() < timeout {
                 tokio::time::sleep(poll).await;
@@ -85,14 +86,15 @@ impl<'s> Chrome<'s> {
     }
 }
 
-impl<'s> Drop for Chrome<'s> {
+#[derive(Debug)]
+pub struct ChromeProcess {
+    pub inner: Arc<Mutex<Child>>,
+}
+
+impl Drop for ChromeProcess {
     fn drop(&mut self) {
-        if let Some(handle_ptr) = &self.handle {
-            if let Ok(mut handle) = handle_ptr.lock() {
-                handle
-                    .kill()
-                    .unwrap_or_else(|_| panic!("failed to cleanup chromedriver process: {}", handle.id()));
-            }
+        if let Ok(mut handle) = self.inner.lock() {
+            handle.kill().unwrap();
         }
     }
 }

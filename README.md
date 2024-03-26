@@ -9,9 +9,10 @@ cargo add --git https://github.com/cloud303-cholden/rs-chrome.git
 The `Chrome` struct has the following public `Default` implementation.
 ```rust
 Chrome {
-    driver_path: "chromedriver".into(),
-    server_url: "http://localhost:9515".into(),
+    driver_path: "chromedriver",
+    server_url: "http://localhost:9515",
     args: &[],
+    handle: None,
 }
 ```
 ### Example
